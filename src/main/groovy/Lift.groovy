@@ -16,6 +16,9 @@ class Lift implements ButtonPanelListener{
 
     @Override
     def buttonPushed() {
-
+        def requestedFloor = interiorButtonPanel.requestedFloor
+        if(requestedFloor > currentFloor){
+            direction = Directions.UP
+        }
     }
 }
