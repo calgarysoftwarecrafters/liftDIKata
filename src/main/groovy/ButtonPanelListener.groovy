@@ -1,0 +1,3 @@
+interface ButtonPanelListener {
+    def buttonPushed()
+}
