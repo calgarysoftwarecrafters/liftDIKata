@@ -9,13 +9,18 @@ class LiftSystemSpecification extends Specification{
             lift.direction == Lift.Directions.STATIONARY
     }
 
-    def "Lift moves up if the floor requested from the interior panel is greater than the current floor"() {
+    def "Lift moves towards the requested floor"() {
         given:
             def interiorButtonPanel = Mock(InteriorButtonPanel)
-            def lift = new Lift(0, interiorButtonPanel)
-            interiorButtonPanel.getRequestedFloor() >> 10
+            def lift = new Lift(currentFloor, interiorButtonPanel)
+            interiorButtonPanel.getRequestedFloor() >> requestedFloor
             lift.buttonPushed()
         expect:
-            lift.direction == Lift.Directions.UP
+            lift.direction == expectedDirection
+        where:
+            currentFloor | requestedFloor | expectedDirection
+            0            | 10             | Lift.Directions.UP
+            10           | 0              | Lift.Directions.DOWN
+            10           | 10             | Lift.Directions.STATIONARY
     }
 }

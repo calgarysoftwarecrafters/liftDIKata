@@ -19,6 +19,8 @@ class Lift implements ButtonPanelListener{
         def requestedFloor = interiorButtonPanel.requestedFloor
         if(requestedFloor > currentFloor){
             direction = Directions.UP
+        } else if(requestedFloor < currentFloor) {
+            direction = Directions.DOWN
         }
     }
 }
