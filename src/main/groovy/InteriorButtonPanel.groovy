@@ -1,6 +1,6 @@
 class InteriorButtonPanel {
     private ButtonPanelListener listener
-    private int requestedFloor
+    private Integer requestedFloor
 
     void setListener(ButtonPanelListener listener) {
         this.listener = listener
@@ -10,7 +10,7 @@ class InteriorButtonPanel {
         listener.buttonPushed()
     }
 
-    int getRequestedFloor() {
+    Integer getRequestedFloor() {
         return requestedFloor
     }
 }
