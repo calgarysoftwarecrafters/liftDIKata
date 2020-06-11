@@ -23,9 +23,9 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
     @Override
     def buttonPushed() {
         def floor = interiorButtonPanel.getRequestedFloor()
-        changeDirection()
         requestedFloors.add(floor)
         requestedFloors.sort()
+        changeDirection()
     }
 
     @Override
@@ -43,11 +43,7 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
 
     private changeDirection(){
         if(requestedFloors.size() > 0) {
-            def requestedFloor = requestedFloors.first()
-
-            if (direction == Directions.DOWN) {
-                requestedFloor = requestedFloors.last()
-            }
+            def requestedFloor = nextRequestedFloor()
 
             if (requestedFloor > currentFloor) {
                 direction = Directions.UP
@@ -59,6 +55,16 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
                 direction = Directions.STATIONARY
             }
         }
+    }
+
+    private Integer nextRequestedFloor(){
+        def requestedFloor = requestedFloors.first()
+
+        if (direction == Directions.DOWN) {
+            requestedFloor = requestedFloors.last()
+        }
+
+        return requestedFloor
     }
 
     def clearFloor(Integer floor) {

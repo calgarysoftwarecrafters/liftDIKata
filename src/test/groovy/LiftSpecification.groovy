@@ -30,8 +30,9 @@ class LiftSystemSpecification extends Specification{
         given:
             setupLiftTest(startFloor, endFloor, [requestedFloor])
             lift.buttonPushed()
+
         when:
-            liftMovesTowardsRequestedFloor(startFloor, endFloor)
+            liftMovesNumberOfFloors(Math.abs(endFloor-startFloor))
         then:
             lift.direction == expectedDirection
 
@@ -47,9 +48,9 @@ class LiftSystemSpecification extends Specification{
 
     def "Lift doors open when lift arrives at requested floor" (){
         given:
-            setupLiftTest(0, 10, 10)
+            setupLiftTest(0, 10, [10])
         when:
-            liftMovesTowardsRequestedFloor(0, 10)
+            liftMovesTowardsRequestedFloor()
         then:
             1 * doorSystem.openDoors()
     }
@@ -71,7 +72,7 @@ class LiftSystemSpecification extends Specification{
         20           | 10         | [10, 5]         | Lift.Directions.DOWN
         0            | 20         | [10, 20, 5]     | Lift.Directions.UP
     }
-    
+
     def createFloorSensorMock(IntRange floors) {
         def floorSensor = Mock(FloorSensor)
         floorSensor.getCurrentFloor() >>> floors
@@ -92,6 +93,12 @@ class LiftSystemSpecification extends Specification{
         lift = new Lift(this.floorSensor, interiorButtonPanel, this.doorSystem)
         requestedFloors.size().times {
             lift.buttonPushed()
+        }
+    }
+
+    def liftMovesNumberOfFloors(Integer numberOfFloors){
+        numberOfFloors.times {
+            lift.floorChanged()
         }
     }
 
