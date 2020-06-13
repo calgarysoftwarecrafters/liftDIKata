@@ -1,9 +1,10 @@
-class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListener{
+class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListener {
     private InteriorButtonPanel interiorButtonPanel
     private FloorSensor floorSensor
-    private ArrayList<Integer> requestedFloors
+    def requestedFloorsForDirection
     private Integer currentFloor
     public Directions direction
+    public Boolean isStopped
     DoorSystem doorSystem
 
     enum Directions {
@@ -16,48 +17,80 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
         this.interiorButtonPanel = interiorButtonPanel
         this.doorSystem = doorSystem
         this.direction = Directions.STATIONARY
-        this.requestedFloors = new ArrayList<>()
+        this.isStopped = true
+        this.requestedFloorsForDirection = new HashMap<>()
+        this.requestedFloorsForDirection.put(Directions.UP, new ArrayList<Integer>())
+        this.requestedFloorsForDirection.put(Directions.DOWN, new ArrayList<Integer>())
         interiorButtonPanel.setListener(this)
     }
 
     @Override
     def buttonPushed() {
         def floor = interiorButtonPanel.getRequestedFloor()
-        requestedFloors.add(floor)
-        requestedFloors.sort()
-        changeDirection()
+
+        if (floor > currentFloor) {
+            requestedFloorsForDirection.get(Directions.UP).add(floor)
+            requestedFloorsForDirection.get(Directions.UP).sort()
+        } else if (floor < currentFloor) {
+            requestedFloorsForDirection.get(Directions.DOWN).add(floor)
+            requestedFloorsForDirection.get(Directions.DOWN).sort()
+        }
+
+        evaluateDirectionOfTravel()
     }
 
     @Override
     def floorChanged() {
         currentFloor = floorSensor.getCurrentFloor()
-        changeDirection()
+        stopIfArrivedAtRequestedFloor(requestedFloorsForDirection.get(direction))
+        evaluateDirectionOfTravel()
     }
 
     @Override
     void doorsClosed() {
-        if(requestedFloors.size() > 0){
-            changeDirection()
-        }
+        evaluateDirectionOfTravel()
     }
 
-    private changeDirection(){
-        if(requestedFloors.size() > 0) {
-            def requestedFloor = nextRequestedFloor()
+    private evaluateDirectionOfTravel() {
+        def proposedDirection = direction
+        if(proposedDirection == Directions.STATIONARY) {
+            proposedDirection = Directions.UP
+        }
 
-            if (requestedFloor > currentFloor) {
-                direction = Directions.UP
-            } else if (requestedFloor < currentFloor) {
-                direction = Directions.DOWN
-            } else {
-                doorSystem.openDoors()
-                clearFloor(requestedFloor)
+        if (requestedFloorsForDirection.get(proposedDirection).isEmpty()) {
+            if (requestedFloorsForDirection.get(calculateOppositeDirection(proposedDirection)).isEmpty()) {
                 direction = Directions.STATIONARY
+                isStopped = true
+            } else {
+                direction = calculateOppositeDirection(proposedDirection)
+                isStopped = false
             }
+        } else {
+            direction = proposedDirection
+            isStopped = false
         }
     }
 
-    private Integer nextRequestedFloor(){
+    private Directions calculateOppositeDirection(Directions initial){
+        if(initial == Directions.UP) {
+            return Directions.DOWN
+        } else if(initial == Directions.DOWN) {
+            return Directions.UP
+        }
+        return Directions.STATIONARY
+    }
+
+    private stopIfArrivedAtRequestedFloor(ArrayList<Integer> requestedFloors) {
+        def requestedFloor = nextRequestedFloor(requestedFloors)
+
+        if (requestedFloor == currentFloor) {
+            doorSystem.openDoors()
+            clearFloor(requestedFloor, requestedFloors)
+            isStopped = true
+        }
+    }
+
+    private Integer nextRequestedFloor(ArrayList<Integer> requestedFloors) {
         def requestedFloor = requestedFloors.first()
 
         if (direction == Directions.DOWN) {
@@ -67,7 +100,7 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
         return requestedFloor
     }
 
-    def clearFloor(Integer floor) {
+    def clearFloor(Integer floor, ArrayList<Integer> requestedFloors) {
         int index = requestedFloors.indexOf(floor)
         requestedFloors.remove(index)
     }
