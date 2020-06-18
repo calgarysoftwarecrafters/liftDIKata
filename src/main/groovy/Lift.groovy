@@ -6,6 +6,7 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
     public Directions direction
     public Boolean isStopped
     DoorSystem doorSystem
+    boolean doorsOpen
 
     enum Directions {
         UP, DOWN, STATIONARY
@@ -16,8 +17,11 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
         this.currentFloor = floorSensor.getCurrentFloor()
         this.interiorButtonPanel = interiorButtonPanel
         this.doorSystem = doorSystem
+
         this.direction = Directions.STATIONARY
         this.isStopped = true
+        this.doorsOpen = false
+
         this.requestedFloorsForDirection = new HashMap<>()
         this.requestedFloorsForDirection.put(Directions.UP, new ArrayList<Integer>())
         this.requestedFloorsForDirection.put(Directions.DOWN, new ArrayList<Integer>())
@@ -36,6 +40,7 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
             requestedFloorsForDirection.get(Directions.DOWN).sort()
         }
 
+        stopIfArrivedAtRequestedFloor([floor])
         evaluateDirectionOfTravel()
     }
 
@@ -61,11 +66,11 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
             if (requestedFloorsForDirection.get(calculateOppositeDirection(proposedDirection)).isEmpty()) {
                 direction = Directions.STATIONARY
                 isStopped = true
-            } else {
+            } else if (!doorsOpen) {
                 direction = calculateOppositeDirection(proposedDirection)
                 isStopped = false
             }
-        } else {
+        } else if (!doorsOpen){
             direction = proposedDirection
             isStopped = false
         }
@@ -85,6 +90,7 @@ class Lift implements ButtonPanelListener, FloorSensorListener, DoorSystemListen
 
         if (requestedFloor == currentFloor) {
             doorSystem.openDoors()
+            doorsOpen = true
             clearFloor(requestedFloor, requestedFloors)
             isStopped = true
         }

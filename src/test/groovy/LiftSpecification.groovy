@@ -6,29 +6,18 @@ class LiftSystemSpecification extends Specification {
     private doorSystem
     private lift
 
-    def "Lift is stationary if no buttons are pressed"() {
+    def "Lift is stationary and doors remain closed if no buttons are pressed"() {
         given:
         setupLiftTest(0, 0, [0])
         expect:
         lift.direction == Lift.Directions.STATIONARY
-    }
-
-    def "Lift moves towards the requested floor"() {
-        given:
-        setupLiftTest(startFloor, startFloor, [requestedFloor])
-        lift.buttonPushed()
-        expect:
-        lift.direction == expectedDirection
-        where:
-        startFloor | requestedFloor | expectedDirection
-        0          | 10             | Lift.Directions.UP
-        10         | 0              | Lift.Directions.DOWN
-        10         | 10             | Lift.Directions.STATIONARY
+        lift.isStopped == true
+        lift.doorsOpen == false
     }
 
     def "Lift stops only when it arrives at a requested floor"() {
         given:
-        setupLiftTest(startFloor, endFloor, [requestedFloor])
+        setupLiftTestAndPressButtons(startFloor, endFloor, [requestedFloor])
 
         when:
         liftMovesNumberOfFloors(Math.abs(endFloor - startFloor))
@@ -47,16 +36,17 @@ class LiftSystemSpecification extends Specification {
 
     def "Lift doors open when lift arrives at requested floor"() {
         given:
-        setupLiftTest(0, 10, [10])
+        setupLiftTestAndPressButtons(0, 10, [10])
         when:
         liftMovesTowardsRequestedFloor()
         then:
         1 * doorSystem.openDoors()
+        lift.doorsOpen == true
     }
 
     def "Lift moves on to next floor in the original direction of travel when doors are closed"() {
         given:
-        setupLiftTest(initialFloor, finalFloor, requestedFloors)
+        setupLiftTestAndPressButtons(initialFloor, finalFloor, requestedFloors)
         when:
         floorsVisited.times {
             liftMovesTowardsRequestedFloor()
@@ -73,6 +63,25 @@ class LiftSystemSpecification extends Specification {
 
 
     def "Lift starts in direction of original button press"() {
+        given:
+        setupLiftTestAndPressButtons(initialFloor, finalFloor, requestedFloors)
+
+        expect:
+        lift.direction == expectedDirection
+        lift.isStopped == isStopped
+
+        where:
+        initialFloor | finalFloor | requestedFloors | expectedDirection    | isStopped
+        5            | 6          | [10, 4]         | Lift.Directions.UP   | false
+        5            | 4          | [1, 8]          | Lift.Directions.DOWN | false
+        5            | 5          | [5, 6]          | Lift.Directions.STATIONARY   | true
+    }
+
+    def "Lift pauses at current floor before moving on to next, if the current floor is requested at any time"() {
+
+    }
+
+    def "Doors do not open if lift is in motion" () {
 
     }
 
@@ -89,14 +98,18 @@ class LiftSystemSpecification extends Specification {
         return interiorButtonPanel
     }
 
-    def setupLiftTest(Integer startFloor, Integer endFloor, ArrayList<Integer> requestedFloors) {
+    def setupLiftTestAndPressButtons(Integer startFloor, Integer endFloor, ArrayList<Integer> requestedFloors) {
+        lift = setupLiftTest(startFloor, endFloor, requestedFloors)
+        requestedFloors.size().times {
+            lift.buttonPushed()
+        }
+    }
+
+    private Lift setupLiftTest(int startFloor, int endFloor, ArrayList<Integer> requestedFloors) {
         doorSystem = Mock(DoorSystem)
         floorSensor = createFloorSensorMock(startFloor..endFloor)
         interiorButtonPanel = createInteriorButtonPanelMock(requestedFloors)
         lift = new Lift(this.floorSensor, interiorButtonPanel, this.doorSystem)
-        requestedFloors.size().times {
-            lift.buttonPushed()
-        }
     }
 
     def liftMovesNumberOfFloors(Integer numberOfFloors) {
